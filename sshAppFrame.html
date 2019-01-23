@@ -1,0 +1,144 @@
+<head>
+<title>Secure Shell App</title>
+<script language = "javascript">
+var g_nMain;
+
+var g_strMainJSONPrev;
+var g_listDiv = [];
+
+
+function myCreateWindow(strName, dicWin) {
+  var divNew = document.createElement("div");
+  var fFullW = window.innerWidth;
+  var fFullH = window.innerHeight;
+  
+  divNew.name  = strName;
+  divNew.group = dicWin[ "group" ];
+  document.body.appendChild(divNew);
+  
+  divNew.style.position = "absolute";
+  divNew.style.left   = Math.floor(fFullW * dicWin[ "left"   ]) + "px";
+  divNew.style.top    = Math.floor(fFullH * dicWin[ "top"    ]) + "px";
+  divNew.style.width  = Math.floor(fFullW * dicWin[ "width"  ]) + "px";
+  divNew.style.height = Math.floor(fFullH * dicWin[ "height" ]) + "px";
+  
+  return divNew;
+}
+
+
+function myClearWindows(listDiv, dicMain) {
+  var i;
+  
+  var listNew = [];
+  
+  for ( i = 0 ; i < listDiv.length ; i++ ) {
+    if ( listDiv[ i ].name in dicMain ) listNew[ listNew.length ] = listDiv[ i ];
+    else document.body.removeChild(listDiv[ i ]);
+  }
+  
+  return listNew;
+}
+
+
+function mySetVisible(listDiv, listVisible) {
+  var i;
+  
+  for ( i = 0 ; i < listDiv.length ; i++ ) 
+    listDiv[ i ].style.visibility = ( listVisible.indexOf(listDiv[ i ].group) == -1 ? "hidden" : "visible" );
+  
+  return 0;
+}
+
+
+function myDoJobFromJSON(strJSON) {
+  var i, j;
+  
+  var nIdx = -1;
+  
+  if ( g_strMainJSONPrev == strJSON ) return 0;
+  
+  var dicMain = JSON.parse(strJSON);
+  
+  g_listDiv = myClearWindows(g_listDiv, dicMain);
+  mySetVisible(g_listDiv, dicMain[ "#display" ]);
+  
+  for ( var strKey in dicMain ) {
+    if ( strKey.startsWith("#") ) continue;
+    
+    nIdx = -1;
+    
+    for ( i = 0 ; i < g_listDiv.length ; i++ ) {
+      if ( g_listDiv[ i ].name == strKey ) {
+        nIdx = i;
+        break;
+      }
+    }
+    
+    if ( nIdx < 0 ) {
+      dicCurr = dicMain[ strKey ];
+      
+      divNew = myCreateWindow(strKey, dicCurr);
+      divNew.innerHTML = dicCurr[ "content" ];
+      
+      divNew.style.visibility = ( dicMain[ "#display" ].indexOf(dicCurr[ "group" ]) == -1 ? "hidden" : "visible" );
+      
+      divNew.style.borderStyle = "solid";
+      divNew.style.borderColor = "red";
+      
+      g_listDiv.push(divNew);
+      nIdx = g_listDiv.length - 1;
+    }
+  }
+  
+  g_strMainJSONPrev = strJSON;
+  
+  return 0;
+}
+
+
+function myRequestReadidngJSON() {
+  var req = new XMLHttpRequest();
+  
+  req.overrideMimeType("application/json");
+  req.open("GET", "http://localhost/apps/sshAppFrame/var/main.json?time=" + new Date().getTime(), true);
+  
+  req.onreadystatechange = function(e) {
+    if ( req.readyState == 4 && req.status == "200" ) {
+      myDoJobFromJSON(req.responseText);
+    }
+  };
+  
+  req.send(null);
+  
+  return 0;
+}
+
+
+function myDoModeTerminal() {
+  console.log("Terminal mode has been launched");
+  
+  window.setInterval(myRequestReadidngJSON, 250);
+  
+  return 0;
+}
+
+
+function main() {
+  var strMainFrame = "<iframe id = \"iframeMain\" " + 
+                     "style = \"top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; " + 
+                     "position:fixed; border:none; margin:0; padding:0; overflow:hidden; z-index:0;\" " + 
+                     "src = \"chrome-extension://pnhechapfaindjhompbnflcldabbghjo/html/nassh.html#" + 
+                     "profile-id:4012\"></iframe>";
+
+  document.write(strMainFrame);
+  document.body.style.backgroundColor = "#0E0E0E";
+  
+  myDoModeTerminal();
+  
+  return 0;
+}
+
+
+main();
+</script>
+</head>
